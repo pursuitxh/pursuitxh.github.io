@@ -1,7 +1,7 @@
 ---
 title: hexo
 date: 2018-10-15 17:13:39
-tags: 博客编写
+tags: hexo
 categories: hexo
 ---
 主要参照next主题的指导步骤：
