@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="读书笔记," />
+  <meta name="keywords" content="问题定位," />
 
 
 
@@ -79,18 +79,18 @@
 
 
 
-<meta name="description" content="love work, love life">
-<meta name="keywords" content="读书笔记">
+<meta name="description" content="问题背景客户Linux内核版本3.4.35，我们的内核版本4.10，FAE将wifi drv从4.10 porting到3.4.35之后，遇到两个问题：   sdio 枚举失败 hostapd启动失败   本文主要记录hostapd启动失败的原因 问题现象通过查看hostapd的log，发现如下错误： 1540362998.766921: nl80211: Failed to set channe">
+<meta name="keywords" content="问题定位">
 <meta property="og:type" content="article">
-<meta property="og:title" content="第一章:Linux内核简介">
-<meta property="og:url" content="http://yoursite.com/2018/10/15/第一章-Linux内核简介/index.html">
+<meta property="og:title" content="hostapd启动失败问题定位">
+<meta property="og:url" content="http://yoursite.com/2018/10/26/hostapd启动失败问题定位/index.html">
 <meta property="og:site_name" content="pursuitxh">
-<meta property="og:description" content="love work, love life">
+<meta property="og:description" content="问题背景客户Linux内核版本3.4.35，我们的内核版本4.10，FAE将wifi drv从4.10 porting到3.4.35之后，遇到两个问题：   sdio 枚举失败 hostapd启动失败   本文主要记录hostapd启动失败的原因 问题现象通过查看hostapd的log，发现如下错误： 1540362998.766921: nl80211: Failed to set channe">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2018-10-15T11:40:59.791Z">
+<meta property="og:updated_time" content="2018-10-26T06:12:12.776Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="第一章:Linux内核简介">
-<meta name="twitter:description" content="love work, love life">
+<meta name="twitter:title" content="hostapd启动失败问题定位">
+<meta name="twitter:description" content="问题背景客户Linux内核版本3.4.35，我们的内核版本4.10，FAE将wifi drv从4.10 porting到3.4.35之后，遇到两个问题：   sdio 枚举失败 hostapd启动失败   本文主要记录hostapd启动失败的原因 问题现象通过查看hostapd的log，发现如下错误： 1540362998.766921: nl80211: Failed to set channe">
 
 
 
@@ -120,13 +120,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2018/10/15/第一章-Linux内核简介/"/>
+  <link rel="canonical" href="http://yoursite.com/2018/10/26/hostapd启动失败问题定位/"/>
 
 
 
 
 
-  <title>第一章:Linux内核简介 | pursuitxh</title>
+  <title>hostapd启动失败问题定位 | pursuitxh</title>
   
 
 
@@ -263,7 +263,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/10/15/第一章-Linux内核简介/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/10/26/hostapd启动失败问题定位/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="pursuitxh">
@@ -280,7 +280,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">第一章:Linux内核简介</h1>
+          <h1 class="post-title" itemprop="name headline">hostapd启动失败问题定位</h1>
         
 
         <div class="post-meta">
@@ -292,8 +292,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-10-15T18:46:14+08:00">
-                2018-10-15
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-10-26T14:07:36+08:00">
+                2018-10-26
               </time>
             
 
@@ -315,8 +315,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/读书笔记/" itemprop="url" rel="index">
-                    <span itemprop="name">读书笔记</span>
+                  <a href="/categories/问题定位/" itemprop="url" rel="index">
+                    <span itemprop="name">问题定位</span>
                   </a>
                 </span>
 
@@ -326,8 +326,8 @@
                 
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/读书笔记/Linux内核设计与实现/" itemprop="url" rel="index">
-                    <span itemprop="name">Linux内核设计与实现</span>
+                  <a href="/categories/问题定位/WIFI/" itemprop="url" rel="index">
+                    <span itemprop="name">WIFI</span>
                   </a>
                 </span>
 
@@ -363,7 +363,27 @@
       
 
       
-        
+        <h2 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h2><p>客户Linux内核版本3.4.35，我们的内核版本4.10，FAE将wifi drv从4.10 porting到3.4.35之后，遇到两个问题：</p>
+<blockquote>
+<ul>
+<li>sdio 枚举失败</li>
+<li>hostapd启动失败</li>
+</ul>
+</blockquote>
+<p>本文主要记录hostapd启动失败的原因</p>
+<h2 id="问题现象"><a href="#问题现象" class="headerlink" title="问题现象"></a>问题现象</h2><p>通过查看hostapd的log，发现如下错误：</p>
+<pre><code>1540362998.766921: nl80211: Failed to set channel (freq=2437): -95 (Operation not supported)
+</code></pre><p>那么，-95错误是怎么来的呢？通过定位发现是由于set_channel未实现导致：</p>
+<pre><code>nl80211_set_channel
+     .cmd = NL80211_CMD_SET_WIPHY,
+    .doit = nl80211_set_wiphy,
+        result = __nl80211_set_channel(rdev, wdev, info);
+            result = cfg80211_set_freq(rdev, wdev, freq, channel_type);
+                    if (!rdev-&gt;ops-&gt;set_channel)
+                        return -EOPNOTSUPP;
+</code></pre><p>而4.10的版本不实现set_channel就没有问题，可见新版本的内核相对于老版本的内核，对cfg80211的相关实现进行了改动。</p>
+<h2 id="问题解决："><a href="#问题解决：" class="headerlink" title="问题解决："></a>问题解决：</h2><p>正常解决办法是将freq通过<code>set_channel</code>信息实现，但是为了保证fw的统一性，在<code>set_channel</code>中只是将freq相关信息保存下来，在<code>apm_start</code>中将信息取出，通过消息发送给fw，进行channel设定。</p>
+
       
     </div>
     
@@ -380,7 +400,7 @@
       
         <div class="post-tags">
           
-            <a href="/tags/读书笔记/" rel="tag"># 读书笔记</a>
+            <a href="/tags/问题定位/" rel="tag"># 问题定位</a>
           
         </div>
       
@@ -393,8 +413,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2018/10/15/hexo/" rel="next" title="hexo">
-                <i class="fa fa-chevron-left"></i> hexo
+              <a href="/2018/10/17/sdio设备枚举问题/" rel="next" title="sdio设备枚举问题">
+                <i class="fa fa-chevron-left"></i> sdio设备枚举问题
               </a>
             
           </div>
@@ -402,10 +422,6 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2018/10/15/第一章-内核模块/" rel="prev" title="第一章:内核模块">
-                第一章:内核模块 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -457,8 +473,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -550,6 +575,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#问题背景"><span class="nav-number">1.</span> <span class="nav-text">问题背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#问题现象"><span class="nav-number">2.</span> <span class="nav-text">问题现象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#问题解决："><span class="nav-number">3.</span> <span class="nav-text">问题解决：</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
