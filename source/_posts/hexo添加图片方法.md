@@ -4,7 +4,7 @@ date: 2018-11-09 18:52:08
 tags: hexo
 categories: hexo
 ---
-1. 百度搜索"base64 图片转码工具"，例如[base64图片转码网址](https://tool.lu/base64image/)
+1. 百度搜索"base64 图片转码工具"，例如[base64图片转码网址](http://imgbase64.duoshitong.com/)
 2. 生成图片的base64编码
 3. md文件中这样使用
    ![图片描述][图片引用标识]
