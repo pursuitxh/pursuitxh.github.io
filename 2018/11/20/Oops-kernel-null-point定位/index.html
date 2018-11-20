@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="问题背景在Openwrt平台上，加载wifi driver，起AP模式，跑iperf，UDP性能收发均在16Mbps（同样的环境在PC-t430上可以达到40Mbps）。看了下当前的内存消耗情况，只剩余1M左右，怀疑性能下降，与内存消耗过多有关。于是定位内存消耗在什么地方。后面发现ifconfig wlan0 192.168.16.2之后，发现内存消耗5.8MB。经定位发现，由于我们的AP支持10">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Oops_kernel_null_point定位">
+<meta property="og:url" content="http://yoursite.com/2018/11/20/Oops-kernel-null-point定位/index.html">
+<meta property="og:site_name" content="pursuitxh">
+<meta property="og:description" content="问题背景在Openwrt平台上，加载wifi driver，起AP模式，跑iperf，UDP性能收发均在16Mbps（同样的环境在PC-t430上可以达到40Mbps）。看了下当前的内存消耗情况，只剩余1M左右，怀疑性能下降，与内存消耗过多有关。于是定位内存消耗在什么地方。后面发现ifconfig wlan0 192.168.16.2之后，发现内存消耗5.8MB。经定位发现，由于我们的AP支持10">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-11-20T01:46:24.985Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Oops_kernel_null_point定位">
+<meta name="twitter:description" content="问题背景在Openwrt平台上，加载wifi driver，起AP模式，跑iperf，UDP性能收发均在16Mbps（同样的环境在PC-t430上可以达到40Mbps）。看了下当前的内存消耗情况，只剩余1M左右，怀疑性能下降，与内存消耗过多有关。于是定位内存消耗在什么地方。后面发现ifconfig wlan0 192.168.16.2之后，发现内存消耗5.8MB。经定位发现，由于我们的AP支持10">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/11/20/Oops-kernel-null-point定位/"/>
+
+
+
+
+
+  <title>Oops_kernel_null_point定位 | pursuitxh</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">pursuitxh</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/11/20/Oops-kernel-null-point定位/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="pursuitxh">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="pursuitxh">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Oops_kernel_null_point定位</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-11-20T09:24:55+08:00">
+                2018-11-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h2><p>在Openwrt平台上，加载wifi driver，起AP模式，跑iperf，UDP性能收发均在16Mbps（同样的环境在PC-t430上可以达到40Mbps）。<br>看了下当前的内存消耗情况，只剩余1M左右，怀疑性能下降，与内存消耗过多有关。于是定位内存消耗在什么地方。<br>后面发现ifconfig wlan0 192.168.16.2之后，发现内存消耗5.8MB。经定位发现，由于我们的AP支持10个station，每一个station<br>消耗600KB左右的内存,于是降低支持station的数量（支持一个station），起hostapd时，出现Oops错误。</p>
+<h2 id="Oops-log"><a href="#Oops-log" class="headerlink" title="Oops log"></a>Oops log</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br></pre></td><td class="code"><pre><span class="line">Using interface wlan0 with hwaddr 3c:07:71:27:00:02 and ssid &quot;bfl_guys&quot;</span><br><span class="line">[  296.624237] recv: msg:  68-MM_CHANNEL_SWITCH_IND</span><br><span class="line">[  296.629882] recv: msg:7169-APM_START_CFM</span><br><span class="line">[  296.636413] bl_fdrv mmc1:0001:1 wlan0: AP started: ch=0, bcmc_idx=10</span><br><span class="line">[  296.643737] IPv6: ADDRCONF(NETDEV_CHANGE): wlan0: link becomes ready</span><br><span class="line">[  296.659484] recv: msg:  27-MM_SET_EDCA_CFM</span><br><span class="line">[  296.666015] recv: msg:  27-MM_SET_EDCA_CFM</span><br><span class="line">[  296.671386] Unable to handle kernel NULL pointer dereference at virtual address 0000000a</span><br><span class="line">[  296.679595] pgd = c0004000</span><br><span class="line">[  296.682312] [0000000a] *pgd=00000000</span><br><span class="line">[  296.685913] Internal error: Oops: 17 [#1] PREEMPT ARM</span><br><span class="line">[  296.690979] Modules linked in: bl_fdrv button_hotplug</span><br><span class="line">[  296.696044] CPU: 0 PID: 3 Comm: ksoftirqd/0 Not tainted 3.10.33 #6</span><br><span class="line">[  296.702239] task: c1c52600 ti: c1c5a000 task.ti: c1c5a000</span><br><span class="line">[  296.707672] PC is at bl_start_xmit+0x160/0x290 [bl_fdrv]</span><br><span class="line">[  296.712982] LR is at bl_start_xmit+0x130/0x290 [bl_fdrv]</span><br><span class="line">[  296.718322] pc : [&lt;bf00f600&gt;]    lr : [&lt;bf00f5d0&gt;]    psr: a0000013</span><br><span class="line">[  296.718322] sp : c1c5bc00  ip : c11a88f0  fp : c1c5bc44</span><br><span class="line">[  296.729797] r10: c1b61c00  r9 : 000000ff  r8 : c1d55938</span><br><span class="line">[  296.735015] r7 : c1d544f0  r6 : c1d54440  r5 : c173d000  r4 : c176c840</span><br><span class="line">[  296.741546] r3 : 0000004c  r2 : 0000dd86  r1 : 00000000  r0 : 00000003</span><br><span class="line">[  296.748077] Flags: NzCv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment kernel</span><br><span class="line">[  296.755371] Control: 10c53c7d  Table: 0172c059  DAC: 00000015</span><br><span class="line">[  296.761138]</span><br><span class="line">[  296.761138] SP: 0xc1c5bb80:</span><br><span class="line">[  296.765411] bb80  00000000 c176c6c0 c1c5bbac c1c5bb98 c02d93c4 c02d5f68 bf00f600 a0000013</span><br><span class="line">[  296.773651] bba0  ffffffff c1c5bbec c1c5bc44 c1c5bbb8 c0008c18 c000838c 00000003 00000000</span><br><span class="line">[  296.781890] bbc0  0000dd86 0000004c c176c840 c173d000 c1d54440 c1d544f0 c1d55938 000000ff</span><br><span class="line">[  296.790130] bbe0  c1b61c00 c1c5bc44 c11a88f0 c1c5bc00 bf00f5d0 bf00f600 a0000013 ffffffff</span><br><span class="line">[  296.798370] bc00  c1c5bcf4 0000dd86 33338dd0 16000000 2771073c c1c50200 c0279cfc 00006000</span><br><span class="line">[  296.806640] bc20  00000000 c176c6c0 c173d000 c163ac20 c19cd45c bf014244 c1c5bc84 c1c5bc48</span><br><span class="line">[  296.814880] bc40  c02e42d8 bf00f4ac c1c5a000 c19cd400 c163ac20 00000000 c173d000 c19cd400</span><br><span class="line">[  296.823120] bc60  c163ac20 c176c6c0 c173d000 c173d000 c19cd45c c19cd45c c1c5bcac c1c5bc88</span><br><span class="line">[  296.831359]</span><br><span class="line">[  296.831359] IP: 0xc11a8870:</span><br><span class="line">[  296.835632] 8870  00000000 00000000 00000000 c11a887c c11a887c 00000000 00000000 000b6f4f</span><br><span class="line">[  296.843902] 8890  00000000 00000000 0020d000 0022b000 c11a8318 c11a8580 c11a8328 00000000</span><br><span class="line">[  296.852142] 88b0  00000000 00105000 c1418000 0000038f 00100073 00000000 00000000 00000000</span><br><span class="line">[  296.860382] 88d0  00000000 c100d908 c100d908 c1727d20 00000000 0000020d 00000000 00000000</span><br><span class="line">[  296.868621] 88f0  c11a8b58 b6ebf000 c11a8898 c11a8b58 c11a8b11 c11a88a8 00000000 00000000</span><br><span class="line">[  296.876861] 8910  007c0003 0000038f 00100071 c14c6d94 00000000 00000000 0000006d c11a892c</span><br><span class="line">[  296.885131] 8930  c11a892c c17276c0 c045d87c 0000006d c17d0240 00000000 00008000 000ff000</span><br><span class="line">[  296.893371] 8950  c11a8580 00000000 c11a8591 00000000 00000000 00008000 c1418000 0000018f</span><br><span class="line">[  296.901611]</span><br><span class="line">[  296.901611] FP: 0xc1c5bbc4:</span><br><span class="line">[  296.905883] bbc4  0000004c c176c840 c173d000 c1d54440 c1d544f0 c1d55938 000000ff c1b61c00</span><br><span class="line">[  296.914123] bbe4  c1c5bc44 c11a88f0 c1c5bc00 bf00f5d0 bf00f600 a0000013 ffffffff c1c5bcf4</span><br><span class="line">[  296.922393] bc04  0000dd86 33338dd0 16000000 2771073c c1c50200 c0279cfc 00006000 00000000</span><br><span class="line">[  296.930633] bc24  c176c6c0 c173d000 c163ac20 c19cd45c bf014244 c1c5bc84 c1c5bc48 c02e42d8</span><br><span class="line">[  296.938873] bc44  bf00f4ac c1c5a000 c19cd400 c163ac20 00000000 c173d000 c19cd400 c163ac20</span><br><span class="line">[  296.947113] bc64  c176c6c0 c173d000 c173d000 c19cd45c c19cd45c c1c5bcac c1c5bc88 c02fa0c0</span><br><span class="line">[  296.955383] bc84  c02e3fcc c19cd400 c176c6c0 c163ac20 c173d000 0000005a 00000000 c1c5bcec</span><br><span class="line">[  296.963623] bca4  c1c5bcb0 c02e4628 c02fa060 c19cd45c c19cd800 c19cd880 00000000 c1c5bcec</span><br><span class="line">[  296.971862]</span><br><span class="line">[  296.971862] R4: 0xc176c7c0:</span><br><span class="line">[  296.976135] c7c0  00000000 00000000 c1f57c48 c052d5d4 00060002 00000000 c16385e0 c1c14148</span><br><span class="line">[  296.984374] c7e0  c1c140e0 000f0000 0000002c 00000000 00000000 00000000 00000001 c022f24c</span><br><span class="line">[  296.992645] c800  c02220a4 00000000 c022ecd4 c022eda8 61560100 00dba105 00000bb4 c1f8a00c</span><br><span class="line">[  297.000885] c820  00000000 c1c14218 c17b8480 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.009124] c840  00000000 00000000 00000000 00000000 00000000 c173d000 0000005a 00000000</span><br><span class="line">[  297.017364] c860  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.025634] c880  00000000 00000000 00000000 00000000 000000ee 00000000 00000000 00000000</span><br><span class="line">[  297.033874] c8a0  000000ff dd860000 00000000 00000000 00000000 00000000 00000000 00080000</span><br><span class="line">[  297.042114]</span><br><span class="line">[  297.042114] R5: 0xc173cf80:</span><br><span class="line">[  297.046386] cf80  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.054626] cfa0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.062866] cfc0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.071136] cfe0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.079376] d000  6e616c77 00000030 00000000 00000000 00000000 c1d3451c 00000000 00000000</span><br><span class="line">[  297.087615] d020  00000000 00000000 00000000 00000003 c05388e0 c1638030 c173d038 c173d038</span><br><span class="line">[  297.095855] d040  c173d040 c173d040 c173d048 c173d048 00006000 00000000 40004800 00000000</span><br><span class="line">[  297.104125] d060  00004800 00000000 00000020 00000000 00000001 00000000 0000000d 0000000d</span><br><span class="line">[  297.112365]</span><br><span class="line">[  297.112365] R6: 0xc1d543c0:</span><br><span class="line">[  297.116638] 43c0  c1d543bc 00000000 00000000 00000000 00000000 00000000 00000001 dead4ead</span><br><span class="line">[  297.124877] 43e0  ffffffff ffffffff c1d543e8 c1d543e8 c1d22a6c c1d22a7c c1d22a7c 00000001</span><br><span class="line">[  297.133117] 4400  c0537f38 00000000 00000000 00000000 00000001 c19c6d10 00000000 00000000</span><br><span class="line">[  297.141357] 4420  c0453108 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.149627] 4440  bf019e70 00000000 c100f408 c1d541c0 c173d5e0 c173d5e0 c173d5e0 00000000</span><br><span class="line">[  297.157867] 4460  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.166107] 4480  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.174346] 44a0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.182617]</span><br><span class="line">[  297.182617] R7: 0xc1d54470:</span><br><span class="line">[  297.186889] 4470  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.195129] 4490  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.203369] 44b0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.211608] 44d0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.219848] 44f0  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.228118] 4510  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.236358] 4530  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.244598] 4550  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.252838]</span><br><span class="line">[  297.252838] R8: 0xc1d558b8:</span><br><span class="line">[  297.257110] 58b8  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.265380] 58d8  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.273620] 58f8  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.281860] 5918  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.290100] 5938  0000ffff 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.298339] 5958  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.306610] 5978  00000000 0000ffff 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.314849] 5998  00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.323089]</span><br><span class="line">[  297.323089] R10: 0xc1b61b80:</span><br><span class="line">[  297.327453] 1b80  00020a28 00820caa 080a88a8 000a0887 a0a20bc8 02a20a9c 880802a0 0a282828</span><br><span class="line">[  297.335693] 1ba0  200200a0 00828bae 00880a8a 2008a0af 80822bbc 82822c22 20202208 2002820f</span><br><span class="line">[  297.343933] 1bc0  80828bcc 22820cac 20800822 0008080f a80a0022 0282082e 0200008a 20820008</span><br><span class="line">[  297.352203] 1be0  888a8be8 88202880 888200a2 0800080f 000a0a08 28820caf 0882aaec 00000208</span><br><span class="line">[  297.360443] 1c00  c11a88f0 000001cf 00000000 00000008 0000011f 4c480700 32332d43 82080136</span><br><span class="line">[  297.368682] 1c20  12968b84 036c4824 04320701 6030180c 50000607 3e22c1be 9b9aeaea 23fbebab</span><br><span class="line">[  297.376922] 1c40  af958b7e 26abaaca aacb060a 82f8cca2 0032a880 ebd9da75 ce9ea94b d852a5ba</span><br><span class="line">[  297.385192] 1c60  c03a205a 0016b91e aaadc02a e2b8b38a 2e1aaa00 db4693b6 8a0aea84 1072acc0</span><br><span class="line">[  297.393432] Process ksoftirqd/0 (pid: 3, stack limit = 0xc1c5a238)</span><br><span class="line">[  297.399627] Stack: (0xc1c5bc00 to 0xc1c5c000)</span><br><span class="line">[  297.403991] bc00: c1c5bcf4 0000dd86 33338dd0 16000000 2771073c c1c50200 c0279cfc 00006000</span><br><span class="line">[  297.412170] bc20: 00000000 c176c6c0 c173d000 c163ac20 c19cd45c bf014244 c1c5bc84 c1c5bc48</span><br><span class="line">[  297.420349] bc40: c02e42d8 bf00f4ac c1c5a000 c19cd400 c163ac20 00000000 c173d000 c19cd400</span><br><span class="line">[  297.428527] bc60: c163ac20 c176c6c0 c173d000 c173d000 c19cd45c c19cd45c c1c5bcac c1c5bc88</span><br><span class="line">[  297.436706] bc80: c02fa0c0 c02e3fcc c19cd400 c176c6c0 c163ac20 c173d000 0000005a 00000000</span><br><span class="line">[  297.444915] bca0: c1c5bcec c1c5bcb0 c02e4628 c02fa060 c19cd45c c19cd800 c19cd880 00000000</span><br><span class="line">[  297.453094] bcc0: c1c5bcec c176c6c0 c19cd800 c173d000 00000000 00000000 c19cd880 0000001c</span><br><span class="line">[  297.461273] bce0: c1c5bd1c c1c5bcf0 c02eca9c c02e4434 00000000 0000004c c176c6c0 c1a61000</span><br><span class="line">[  297.469451] bd00: c19cd800 00000000 0000001d e6244d93 c1c5bd54 c1c5bd20 c035be14 c02ec93c</span><br><span class="line">[  297.477661] bd20: 00000000 c1c5bd30 c100fe00 000005dc c176c6c0 0000004c c176c6c0 00000001</span><br><span class="line">[  297.485839] bd40: 0000004c c1be48a0 c1c5bd6c c1c5bd58 c035eef0 c035ba8c c100fe00 c176c6c0</span><br><span class="line">[  297.494018] bd60: c1c5bd9c c1c5bd70 c035ef94 c035ee20 00000000 c1ba1680 00000000 c0538868</span><br><span class="line">[  297.502197] bd80: c176c6c0 c0538868 c176c6c0 c100fe00 c1c5be1c c1c5bda0 c03787c0 c035ef04</span><br><span class="line">[  297.510406] bda0: c1be4888 0000000d c1c5be1c c1c5bdb8 0000000d 00000000 00000000 003a0000</span><br><span class="line">[  297.518585] bdc0: 00000000 00000000 000002ff 00000000 00000000 16000000 00000000 00000000</span><br><span class="line">[  297.526763] bde0: 00000000 00000000 00000000 0000008f c1c5a000 00000000 c100fe00 c176c6c0</span><br><span class="line">[  297.534942] be00: 00000000 c1f5d158 00000005 00000001 c1c5be5c c1c5be20 c0378c70 c0378660</span><br><span class="line">[  297.543151] be20: 00000001 c0052f10 c1e61640 c100fe6c c1c5be4c 00000100 c1c5be88 c0378a50</span><br><span class="line">[  297.551330] be40: c0378a50 c0528e48 00000000 00000200 c1c5be84 c1c5be60 c0036660 c0378a5c</span><br><span class="line">[  297.559509] be60: 00000016 c0572d80 c1c5be84 c0572d80 c1c5be88 c100fe00 c1c5bebc c1c5be88</span><br><span class="line">[  297.567687] be80: c0036858 c0036640 c1c5be88 c1c5be88 c004e7ac c05a5cf8 00000001 c05aa010</span><br><span class="line">[  297.575897] bea0: 00000001 3fa55ff4 00000100 c05a4700 c1c5bf04 c1c5bec0 c0031434 c00366ec</span><br><span class="line">[  297.584075] bec0: c1c02f40 c054be90 00000001 fffffeb3 04208040 0000000a c006ea0c 00000000</span><br><span class="line">[  297.592254] bee0: c1c02f40 c054be90 00000001 00000000 00000000 00000000 c1c5bf1c c1c5bf08</span><br><span class="line">[  297.600433] bf00: c00315c0 c003132c c0031598 c1c5a000 c1c5bf44 c1c5bf20 c004dfc4 c00315a4</span><br><span class="line">[  297.608642] bf20: 00000005 c1c55e64 00000000 c1c02f40 c004ddb4 00000000 c1c5bfac c1c5bf48</span><br><span class="line">[  297.616821] bf40: c004738c c004ddc0 55555555 00000001 00000000 c1c02f40 00000000 00000001</span><br><span class="line">[  297.624999] bf60: dead4ead ffffffff ffffffff c1c5bf6c c1c5bf6c 00000000 00000001 dead4ead</span><br><span class="line">[  297.633178] bf80: ffffffff ffffffff c1c5bf88 c1c5bf88 c1c55e64 c00472d8 00000000 00000000</span><br><span class="line">[  297.641357] bfa0: 00000000 c1c5bfb0 c0009158 c00472e4 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.649566] bfc0: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000</span><br><span class="line">[  297.657745] bfe0: 00000000 00000000 00000000 00000000 00000013 00000000 55555555 55555555</span><br><span class="line">[  297.665924] Backtrace:</span><br><span class="line">[  297.668395] [&lt;bf00f4a0&gt;] (bl_start_xmit+0x0/0x290 [bl_fdrv]) from [&lt;c02e42d8&gt;] (dev_hard_start_xmit+0x318/0x468)</span><br><span class="line">[  297.678588] [&lt;c02e3fc0&gt;] (dev_hard_start_xmit+0x0/0x468) from [&lt;c02fa0c0&gt;] (sch_direct_xmit+0x6c/0x1c0)</span><br><span class="line">[  297.688018] [&lt;c02fa054&gt;] (sch_direct_xmit+0x0/0x1c0) from [&lt;c02e4628&gt;] (dev_queue_xmit+0x200/0x418)</span><br><span class="line">[  297.697052]  r9:00000000 r8:0000005a r7:c173d000 r6:c163ac20 r5:c176c6c0</span><br><span class="line">r4:c19cd400</span><br><span class="line">[  297.704956] [&lt;c02e4428&gt;] (dev_queue_xmit+0x0/0x418) from [&lt;c02eca9c&gt;] (neigh_resolve_output+0x16c/0x188)</span><br><span class="line">[  297.714447] [&lt;c02ec930&gt;] (neigh_resolve_output+0x0/0x188) from [&lt;c035be14&gt;] (ip6_finish_output2+0x394/0x454)</span><br><span class="line">[  297.724273]  r9:e6244d93 r8:0000001d r7:00000000 r6:c19cd800 r5:c1a61000</span><br><span class="line">r4:c176c6c0</span><br><span class="line">[  297.732177] [&lt;c035ba80&gt;] (ip6_finish_output2+0x0/0x454) from [&lt;c035eef0&gt;] (ip6_finish_output+0xdc/0xe4)</span><br><span class="line">[  297.741577]  r9:c1be48a0 r8:0000004c r7:00000001 r6:c176c6c0 r5:0000004c</span><br><span class="line">r4:c176c6c0</span><br><span class="line">[  297.749450] [&lt;c035ee14&gt;] (ip6_finish_output+0x0/0xe4) from [&lt;c035ef94&gt;] (ip6_output+0x9c/0xe0)</span><br><span class="line">[  297.758056]  r5:c176c6c0 r4:c100fe00</span><br><span class="line">[  297.761688] [&lt;c035eef8&gt;] (ip6_output+0x0/0xe0) from [&lt;c03787c0&gt;] (mld_sendpack+0x16c/0x2cc)</span><br><span class="line">[  297.770019]  r6:c100fe00 r5:c176c6c0 r4:c0538868</span><br><span class="line">[  297.774688] [&lt;c0378654&gt;] (mld_sendpack+0x0/0x2cc) from [&lt;c0378c70&gt;] (mld_ifc_timer_expire+0x220/0x27c)</span><br><span class="line">[  297.783996] [&lt;c0378a50&gt;] (mld_ifc_timer_expire+0x0/0x27c) from [&lt;c0036660&gt;] (call_timer_fn.isra.33+0x2c/0xac)</span><br><span class="line">[  297.793945] [&lt;c0036634&gt;] (call_timer_fn.isra.33+0x0/0xac) from [&lt;c0036858&gt;] (run_timer_softirq+0x178/0x1a4)</span><br><span class="line">[  297.803680]  r6:c100fe00 r5:c1c5be88 r4:c0572d80</span><br><span class="line">[  297.808319] [&lt;c00366e0&gt;] (run_timer_softirq+0x0/0x1a4) from [&lt;c0031434&gt;] (__do_softirq+0x114/0x278)</span><br><span class="line">[  297.817382] [&lt;c0031320&gt;] (__do_softirq+0x0/0x278) from [&lt;c00315c0&gt;] (run_ksoftirqd+0x28/0x94)</span><br><span class="line">[  297.825927] [&lt;c0031598&gt;] (run_ksoftirqd+0x0/0x94) from [&lt;c004dfc4&gt;] (smpboot_thread_fn+0x210/0x224)</span><br><span class="line">[  297.834991]  r4:c1c5a000 r3:c0031598</span><br><span class="line">[  297.838592] [&lt;c004ddb4&gt;] (smpboot_thread_fn+0x0/0x224) from [&lt;c004738c&gt;] (kthread+0xb4/0xc0)</span><br><span class="line">[  297.847015]  r8:00000000 r7:c004ddb4 r6:c1c02f40 r5:00000000 r4:c1c55e64</span><br><span class="line">r3:00000005</span><br><span class="line">[  297.854919] [&lt;c00472d8&gt;] (kthread+0x0/0xc0) from [&lt;c0009158&gt;] (ret_from_fork+0x14/0x3c)</span><br><span class="line">[  297.862945]  r7:00000000 r6:00000000 r5:c00472d8 r4:c1c55e64</span><br><span class="line">[  297.868621] Code: e2411072 e1cc12b2 e5981030 e6ff3073 (e5d1100a)</span><br><span class="line">[  297.874725] EMMD: ready to perform memory dump</span><br><span class="line">[  297.879180] ======== dump PCSR for cpu0 ========</span><br><span class="line">[  297.883789] PCSR of cpu0 is 0xc0024728</span><br><span class="line">[  297.887573] PCSR of cpu0 is 0xc0024750</span><br><span class="line">[  297.891326] PCSR of cpu0 is 0xc0024750</span><br><span class="line">[  297.895080] PCSR of cpu0 is 0xc0024750</span><br><span class="line">[  297.898834] PCSR of cpu0 is 0xc0024750</span><br><span class="line">[  297.902587] PCSR of cpu0 is 0xc0024750</span><br><span class="line">[  297.906341] PCSR of cpu0 is 0xc0024750</span><br><span class="line">[  297.910125] PCSR of cpu0 is 0xc0024750</span><br></pre></td></tr></table></figure>
+<h2 id="定位方法"><a href="#定位方法" class="headerlink" title="定位方法"></a>定位方法</h2><p>通过log可以发现，出现了访问空指针的情况<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[  296.671386] Unable to handle kernel NULL pointer dereference at virtual address 0000000a</span><br></pre></td></tr></table></figure></p>
+<p>通过下面的log，可以知道问题出现在bl_tx.c的bl_start_xmit函数中偏移位置在0x160的位置处：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[  296.707672] PC is at bl_start_xmit+0x160/0x290 [bl_fdrv]</span><br></pre></td></tr></table></figure></p>
+<p>如何看出具体是哪一行代码出现的问题呢，有很多种方法，这里我们使用最简单的gdb中l指令的方法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">lchen@work1-HVM-domU:~/Workspace/1802s/BL606_HostDriver$ /home/lchen/Workspace/latest_openwrt/openwrt/owtoolchain/linux64/bin/arm-openwrt-linux-gdb fullmac/bl_fdrv.o</span><br><span class="line">Python Exception &lt;type &apos;exceptions.ImportError&apos;&gt; No module named gdb:</span><br><span class="line"></span><br><span class="line">warning:</span><br><span class="line">Could not load the Python gdb module from `/home/lchen/Workspace/latest_openwrt/openwrt/staging_dir/toolchain-arm_cortex-a7+neon-vfpv4_gcc-4.8-linaro_uClibc-1.0.25_eabi/share/gdb/python&apos;.</span><br><span class="line">Limited Python support is available from the _gdb module.</span><br><span class="line">Suggest passing --data-directory=/path/to/gdb/data-directory.</span><br><span class="line"></span><br><span class="line">GNU gdb (Linaro GDB) 7.6-2013.05</span><br><span class="line">Copyright (C) 2013 Free Software Foundation, Inc.</span><br><span class="line">License GPLv3+: GNU GPL version 3 or later &lt;http://gnu.org/licenses/gpl.html&gt;</span><br><span class="line">This is free software: you are free to change and redistribute it.</span><br><span class="line">There is NO WARRANTY, to the extent permitted by law.  Type &quot;show copying&quot;</span><br><span class="line">and &quot;show warranty&quot; for details.</span><br><span class="line">This GDB was configured as &quot;--host=x86_64-linux-gnu --target=arm-openwrt-linux-uclibcgnueabi&quot;.</span><br><span class="line">For bug reporting instructions, please see:</span><br><span class="line">&lt;http://bugs.launchpad.net/gdb-linaro/&gt;...</span><br><span class="line">Reading symbols from /home/lchen/Workspace/1802s/BL606_HostDriver/fullmac/bl_fdrv.o...done.</span><br><span class="line">(gdb) l *bl_start_xmit+0x160</span><br><span class="line">0xb600 is in bl_start_xmit (/home/lchen/Workspace/1802s/BL606_HostDriver/fullmac/bl_tx.c:1101).</span><br><span class="line">1096            /* the frame len contains sdio special and actual skb-&gt;data */</span><br><span class="line">1097        frame_len = (u16)skb-&gt;len - headroom - sizeof(struct sdio_hdr)-sizeof(struct txdesc_api) - hdr_pads;</span><br><span class="line">1098</span><br><span class="line">1099            sw_txhdr-&gt;hdr.type = BL_TYPE_DATA;</span><br><span class="line">1100            sw_txhdr-&gt;hdr.len = frame_len + sizeof(struct txdesc_api);</span><br><span class="line">1101            sw_txhdr-&gt;hdr.queue_idx = txq-&gt;hwq-&gt;id;</span><br><span class="line">1102            sw_txhdr-&gt;hdr.reserved = g_pkt_sn;</span><br><span class="line">1103</span><br><span class="line">1104            BL_DBG(&quot;xmit_pkt_sn: hw_idx=%d, frame_len=%u, sn=%u\n&quot;,txq-&gt;hwq-&gt;id, frame_len, g_pkt_sn);</span><br><span class="line">1105            g_pkt_sn++;</span><br><span class="line">(gdb) quit</span><br><span class="line">lchen@work1-HVM-domU:~/Workspace/1802s/BL606_HostDriver$</span><br></pre></td></tr></table></figure></p>
+<p>由gdb打印出的信息我们可以看到，访问空指针出现在bl_tx.c的1101行：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">0xb600 is in bl_start_xmit (/home/lchen/Workspace/1802s/BL606_HostDriver/fullmac/bl_tx.c:1101)</span><br><span class="line"></span><br><span class="line">1101            sw_txhdr-&gt;hdr.queue_idx = txq-&gt;hwq-&gt;id;</span><br></pre></td></tr></table></figure></p>
+<p>那么到底是sw_txhdr是空指针，还是txq亦或是txq-&gt;hwq为空指针呢。加个打印调试一下吧，最终发现txq-&gt;hwq为空指针。</p>
+<p>于是分析txq-&gt;hwq为什么是空指针，最终定位到由于firmware那边没有对应的改成支持1个station，导致station1（广播/多播发送数据通道）的idx为0，导致txq找不到对应hwq，从而导致hwq为NULL。</p>
+<h2 id="问题解决"><a href="#问题解决" class="headerlink" title="问题解决"></a>问题解决</h2><p>使用firmware支持1个station的版本，解决问题。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/11/09/hexo添加图片方法/" rel="next" title="hexo添加图片方法">
+                <i class="fa fa-chevron-left"></i> hexo添加图片方法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">pursuitxh</p>
+              <p class="site-description motion-element" itemprop="description">love work, love life</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">11</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/pursuitxh" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="http://theme-next.iissnan.com/" title="Next" target="_blank">Next</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="http://fangzh.top/" title="Fangzh" target="_blank">Fangzh</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://www.cnblogs.com/1477717815fuming/p/7581941.html" title="自己更换ubuntu内核" target="_blank">自己更换ubuntu内核</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#问题背景"><span class="nav-number">1.</span> <span class="nav-text">问题背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Oops-log"><span class="nav-number">2.</span> <span class="nav-text">Oops log</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#定位方法"><span class="nav-number">3.</span> <span class="nav-text">定位方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#问题解决"><span class="nav-number">4.</span> <span class="nav-text">问题解决</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; Mon Oct 15 2018 08:00:00 GMT+0800 (中国标准时间) &mdash; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">pursuitxh</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
