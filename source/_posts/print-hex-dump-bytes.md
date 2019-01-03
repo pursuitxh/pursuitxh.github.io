@@ -399,3 +399,47 @@ void main()
 
 }
 ```
+## 不带ASCII码版本实现（从Marvell wifi驱动中抽出）
+```
+#include <stdio.h>
+
+typedef unsigned char u8;
+
+static inline void dump_hex(const char *prompt,
+                   const u8 *buf, int len)
+{
+    int i = 0;
+
+    for (i = 1; i <= len; i++) {
+        if ((i & 0xf) == 1) {
+            if (i != 1)
+                printf("\n");
+            printf(" %s %04x: ", prompt, i-1);
+        }
+        printf("%02x ", (u8) * buf);
+        buf++;
+    }
+    printf("\n");
+}
+
+void main(int argc ,char **argv)
+{
+
+    char test[30] = {
+                    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+                    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff
+                    };
+
+    dump_hex("TEST", test, 30);
+
+    return 0;
+
+}
+```
+运行结果如下：
+```
+wmli@work1-HVM-domU:~$ ./test
+00000000: 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 11
+00000010: 22 33 44 55 66 77 88 99 aa bb cc dd ee ff
+wmli@work1-HVM-domU:~$
+```
