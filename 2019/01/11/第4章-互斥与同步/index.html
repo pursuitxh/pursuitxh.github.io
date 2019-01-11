@@ -87,7 +87,7 @@
 <meta property="og:site_name" content="pursuitxh">
 <meta property="og:description" content="竟态/并发源/临界区的概念 竟态： 简而言之，就是多个执行路径有可能对同一资源进行操作时可能导致的资源数据紊乱的行为； 我们把对共享资源（大家都有可能同时执行的代码片段）称之为临界区； 我们把导致出现多个执行路径的因素称之为并发源。  并发源的来源 中断： 中断与被中断的进程之间可能会产生并发 调度器的可抢占性： 可抢占会导致进程与进程之间产生并发 多处理器：每个处理器上的进程之间可能导致并发">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2019-01-11T09:22:03.027Z">
+<meta property="og:updated_time" content="2019-01-11T11:06:17.387Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="第4章-互斥与同步">
 <meta name="twitter:description" content="竟态/并发源/临界区的概念 竟态： 简而言之，就是多个执行路径有可能对同一资源进行操作时可能导致的资源数据紊乱的行为； 我们把对共享资源（大家都有可能同时执行的代码片段）称之为临界区； 我们把导致出现多个执行路径的因素称之为并发源。  并发源的来源 中断： 中断与被中断的进程之间可能会产生并发 调度器的可抢占性： 可抢占会导致进程与进程之间产生并发 多处理器：每个处理器上的进程之间可能导致并发">
@@ -386,7 +386,7 @@
 <h2 id="对于多处理器系统来说-如何进行保护？"><a href="#对于多处理器系统来说-如何进行保护？" class="headerlink" title="对于多处理器系统来说, 如何进行保护？"></a>对于多处理器系统来说, 如何进行保护？</h2><p>使用spin_lock</p>
 <h2 id="spin-lock是如何做到多处理器之间的互斥访问的？"><a href="#spin-lock是如何做到多处理器之间的互斥访问的？" class="headerlink" title="spin_lock是如何做到多处理器之间的互斥访问的？"></a>spin_lock是如何做到多处理器之间的互斥访问的？</h2><p>spin_lock的核心思想是，设置一个在多处理器之间共享的全局变量V，各个处理器上需要首先检查V的状态，若不为0，则表明其他处理器正在对临界区进行访问，若为0，表明当前没有其他处理器上的代码进入临界区，可以<br>访问临界区，这时需要先把V置1（上锁），然后进入临界区，访问完毕后，离开临界区时，将V置0（解锁）。</p>
 <p>核心在于确保处理器‘读取V，判断V，更新V’这一操作时原子操作的，如何保证原子操作的，主要借助于LDREX和STREX两条指令和local/global monitor（EX: exclusive）；</p>
-<h2 id="如何使用LDREX-STREX-local-global-monitor做到多处理器对共享变量V的原子操作的？"><a href="#如何使用LDREX-STREX-local-global-monitor做到多处理器对共享变量V的原子操作的？" class="headerlink" title="如何使用LDREX/STREX/local/global monitor做到多处理器对共享变量V的原子操作的？"></a>如何使用LDREX/STREX/local/global monitor做到多处理器对共享变量V的原子操作的？</h2><p>见wowotech博客：Linux内核同步机制之（一）：原子操作<br><a href="http://www.wowotech.net/linux_kenrel/atomic.html" target="_blank" rel="noopener">http://www.wowotech.net/linux_kenrel/atomic.html</a></p>
+<h2 id="如何使用LDREX-STREX-local-global-monitor做到多处理器对共享变量V的原子操作的？"><a href="#如何使用LDREX-STREX-local-global-monitor做到多处理器对共享变量V的原子操作的？" class="headerlink" title="如何使用LDREX/STREX/local/global monitor做到多处理器对共享变量V的原子操作的？"></a>如何使用LDREX/STREX/local/global monitor做到多处理器对共享变量V的原子操作的？</h2><p>见wowotech博客：Linux内核同步机制之（一）：原子操作<br><a href="http://www.wowotech.net/linux_kenrel/atomic.html" target="_blank" rel="noopener">http://www.wowotech.net/linux_kenrel/atomic.html</a><br><a href="https://blog.csdn.net/xiaoaid01/article/details/52092590" target="_blank" rel="noopener">https://blog.csdn.net/xiaoaid01/article/details/52092590</a></p>
 <h2 id="spin-lock的变种"><a href="#spin-lock的变种" class="headerlink" title="spin_lock的变种"></a>spin_lock的变种</h2><p>spin_lock_irq: 进程与中断之间，（进程中使用spin_lock_irq, 中断中使用spin_lock）<br>spin_lock_bh:  进程与延迟处理函数之间，（进程中使用spin_lock_bh,中断中使用spin_lock）</p>
 
       
